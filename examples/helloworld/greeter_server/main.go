@@ -27,7 +27,7 @@ import (
 	"net"
 
 	"google.golang.org/grpc"
-	pb "google.golang.org/grpc/examples/helloworld/helloworld"
+	pb "google.golang.org/grpc/examples/helloworld/helloworld/bark/helloworld"
 )
 
 var (
@@ -43,6 +43,12 @@ type server struct {
 func (s *server) SayHello(ctx context.Context, in *pb.HelloRequest) (*pb.HelloReply, error) {
 	log.Printf("Received: %v", in.GetName())
 	return &pb.HelloReply{Message: "Hello " + in.GetName()}, nil
+}
+
+// SayHello2 implements helloworld.GreeterServer
+func (s *server) SayHello2(ctx context.Context, in *pb.HelloRequest2) (*pb.HelloReply2, error) {
+	log.Printf("Received2: %v", in.GetName())
+	return &pb.HelloReply2{Message: "Hello2 " + in.GetName()}, nil
 }
 
 func main() {

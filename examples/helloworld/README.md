@@ -26,4 +26,11 @@ For more details (including instructions for making a small change to the
 example code) or if you're having trouble running this example, see [Quick
 Start][].
 
+---protoc的安装和命令
+
+~~~
+    brew install protoc
+    protoc --go_out=. --go-grpc_out=. helloworld.proto
+~~~
+
 [quick start]: https://grpc.io/docs/languages/go/quickstart
