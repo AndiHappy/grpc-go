@@ -22,16 +22,18 @@ package main
 import (
 	"context"
 	"flag"
-	"fmt"
+	"google.golang.org/grpc/reflection"
 	"log"
 	"net"
+	"net/http"
 
 	"google.golang.org/grpc"
 	pb "google.golang.org/grpc/examples/helloworld/helloworld/bark/helloworld"
 )
 
 var (
-	port = flag.Int("port", 50051, "The server port")
+	port     = flag.String("port", "50051", "The server port")
+	httpPort = flag.String("httpPort", "9001", "HTTP 启动端口号")
 )
 
 // server is used to implement helloworld.GreeterServer.
@@ -51,16 +53,48 @@ func (s *server) SayHello2(ctx context.Context, in *pb.HelloRequest2) (*pb.Hello
 	return &pb.HelloReply2{Message: "Hello2 " + in.GetName()}, nil
 }
 
-func main() {
-	flag.Parse()
-	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", *port))
-	if err != nil {
-		log.Fatalf("failed to listen: %v", err)
-	}
+func RunHttpServer(port string) error {
+	serveMux := http.NewServeMux()
+	serveMux.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(`pong`))
+	})
+
+	return http.ListenAndServe(":"+port, serveMux)
+}
+
+func RunGrpcServer(port string) error {
 	s := grpc.NewServer()
 	pb.RegisterGreeterServer(s, &server{})
-	log.Printf("server listening at %v", lis.Addr())
+	reflection.Register(s)
+	lis, err := net.Listen("tcp", ":"+port)
+	if err != nil {
+		return err
+	}
+
 	if err := s.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %v", err)
+		return err
+	}
+	return err
+}
+
+func main() {
+	errs := make(chan error)
+	go func() {
+		err := RunHttpServer(*httpPort)
+		if err != nil {
+			errs <- err
+		}
+	}()
+	go func() {
+		err := RunGrpcServer(*port)
+		if err != nil {
+			errs <- err
+		}
+	}()
+
+	select {
+	case err := <-errs:
+		log.Fatalf("Run Server err: %v", err)
 	}
 }
